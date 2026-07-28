@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:recinto_mobile/settings_screen.dart'; // Import the new settings screen
+import 'package:recinto_mobile/settings_screen.dart'; 
 
-// main() is the entry point of the Flutter application.
-// Its purpose is to initialize the app and wrap the root widget with ChangeNotifierProvider 
-// so the ThemeModel state is available throughout the entire app.
+// setState is usually an in-built method of Flutter whereas Provider is the third-party package.
+
+// main() is the entry point (usually the landing page, but it can always be configured.) of the Flutter application. Its purpose is to initialize the app and wrap the root widget with ChangeNotifierProvider so that the ThemeModel state is available throughout the entire app.
 void main() {
   runApp(
     ChangeNotifierProvider(
@@ -14,73 +14,67 @@ void main() {
   );
 }
 
-// ThemeModel is a class that manages the app-wide (global) state for the theme.
-// It mixes in ChangeNotifier to alert any listening widgets whenever the state changes.
+// ThemeModel is a class that manages the app-wide or the global state for the theme, it can either be dark, light or default mode.
+// It mixes in ChangeNotifier to alert any listening widgets whenever the state changes, basically it calls the application to change state depending on the user's choice.
 class ThemeModel with ChangeNotifier {
-  // A private boolean variable to hold the current theme state (false = light, true = dark).
+// A private boolean variable to hold the current theme state (false = light, true = dark). This is the most efficient rule to apply the function.
   bool _isDark = false;
 
-  // A getter function that allows other parts of the app to safely read the _isDark value.
+// I had use a getter function that allows other parts of the app to safely read the _isDark value.
   bool get isDark => _isDark;
 
-  // toggleTheme() is a function used to switch the theme state.
-  // It flips the boolean value and calls notifyListeners() to trigger a UI rebuild for listening widgets.
+// toggleTheme() is a function used to switch the theme state of the application screen.
+// It flips the boolean value and calls notifyListeners() to trigger a UI rebuild for listening widgets.
   void toggleTheme() {
     _isDark = !_isDark;
     notifyListeners();
   }
 }
 
-// MyApp is the root widget of the application.
-// Its purpose is to configure the MaterialApp and listen to the ThemeModel to apply the correct theme.
+// My App's purpose is to configure the MaterialApp and listen to the ThemeModel to apply the correct theme.
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // The build() function describes the part of the user interface represented by this widget.
+// The build() function often describes the part of the user interface represented by this widget.
   @override
   Widget build(BuildContext context) {
-    // We use Provider.of to listen to ThemeModel. When the theme toggles, this rebuilds the MaterialApp.
+// I had use Provider.of to listen to ThemeModel. When the theme toggles, this rebuilds the MaterialApp.
     final themeModel = Provider.of<ThemeModel>(context);
 
     return MaterialApp(
-      // Dynamically setting the theme based on the isDark property from ThemeModel.
       theme: themeModel.isDark ? ThemeData.dark() : ThemeData.light(),
       home: const MyHomePage(),
     );
   }
 }
 
-// MyHomePage is a StatefulWidget that holds the ephemeral (local) state of the UI.
-// Its purpose is to represent the main screen that contains both the local counter and the theme switch.
+// MyHomePage is a StatefulWidget that holds the ephemeral state of the UI. Its purpose is to represent the main screen that contains both the local counter and the theme switch.
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
 
-  // createState() creates the mutable state instance for this widget.
+// createState() creates the mutable state instance for this widget.
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
 // _MyHomePageState manages the state for MyHomePage, specifically the ephemeral counter value.
 class _MyHomePageState extends State<MyHomePage> {
-  // An integer variable to hold the ephemeral state (the number of times the button was pressed).
+// An integer variable to hold the ephemeral state (the number of times the button was pressed). We can see this in the main screen of the application.
   int _counter = 0;
 
-  // _incrementCounter() is a function that increases the counter variable by 1.
-  // It is wrapped in setState() to tell the Flutter framework to rebuild this specific widget.
+// _incrementCounter() is a function that increases the counter variable by 1, so basically 1, 2, 3, 4 and so on...
   void _incrementCounter() {
     setState(() {
       _counter++;
     });
   }
 
-  // The build() function constructs the UI layout for the home screen.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Ephemeral vs App State'),
         actions: [
-          // Replaced the Switch with an IconButton that navigates to Settings
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
@@ -107,7 +101,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        // Triggers the _incrementCounter function when the user presses the button.
+
         onPressed: _incrementCounter,
         tooltip: 'Increment',
         child: const Icon(Icons.add),
