@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:recinto_mobile/main.dart'; 
+import '../providers/theme_provider.dart'; 
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -9,9 +9,9 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // This is to access the global theme model of the application.
-    final themeModel = Provider.of<ThemeModel>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
 
-    final isDark = themeModel.isDark;
+    final isDark = themeProvider.isDark;
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final iconColor = isDark ? Colors.white70 : Colors.blue;
 
@@ -61,7 +61,7 @@ class SettingsScreen extends StatelessWidget {
                   iconColor: Colors.deepPurple,
                   trailing: Switch.adaptive( 
                     value: isDark,
-                    onChanged: (_) => themeModel.toggleTheme(), 
+                    onChanged: (_) => themeProvider.toggleTheme(), 
                     // ignore: deprecated_member_use
                     activeColor: Colors.blue,
                   ),
@@ -186,7 +186,6 @@ class SettingsScreen extends StatelessWidget {
     Widget? leadingWidget,
     VoidCallback? onTap,
   }) {
-  
     final leading = leadingWidget ?? (icon != null ? _buildPremiumIcon(icon, iconColor ?? Colors.blue) : null);
 
     return ListTile(
