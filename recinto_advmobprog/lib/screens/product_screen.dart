@@ -11,7 +11,7 @@ import '../services/product_service.dart';
 import '../widgets/custom_text.dart';
 
 // screens
-import 'product_details_screen.dart'; 
+import 'product_details_screen.dart';
 
 class ProductScreen extends StatefulWidget {
   const ProductScreen({super.key});
@@ -39,26 +39,77 @@ class _ProductScreenState extends State<ProductScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Reading colors from Theme.of(context) instead of hardcoding them means
+    // this screen fades with the rest of the app when dark mode toggles.
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final borderColor =
+        isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06);
+    final hintColor = isDark ? Colors.white54 : Colors.grey[600];
+    final textColor = isDark ? Colors.white : Colors.black87;
+
     return SafeArea(
       child: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Enhancement 1: Replaced static Container with a functional TextField
-            TextField(
-              controller: _searchController,
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value.toLowerCase();
-                });
-              },
-              decoration: InputDecoration(
-                hintText: 'Search products...',
-                prefixIcon: const Icon(Icons.search),
-                contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.r),
+            Container(
+              decoration: BoxDecoration(
+                color: surfaceColor,
+                borderRadius: BorderRadius.circular(28.r),
+                border: Border.all(color: borderColor),
+                boxShadow: isDark
+                    ? null
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+              ),
+              child: TextField(
+                controller: _searchController,
+                style: TextStyle(color: textColor, fontSize: 14.sp),
+                cursorColor: theme.colorScheme.primary,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value.toLowerCase();
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Search products...',
+                  hintStyle: TextStyle(color: hintColor),
+                  prefixIcon: Icon(Icons.search, color: hintColor, size: 22.sp),
+                  // Only show the little "x" when there's something to clear.
+                  suffixIcon: _searchQuery.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: Icon(Icons.close, color: hintColor, size: 18.sp),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        ),
+                  filled: true,
+                  fillColor: Colors.transparent,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 14.h),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(28.r),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(28.r),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(28.r),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
             ),
@@ -70,7 +121,7 @@ class _ProductScreenState extends State<ProductScreen> {
                   return Center(
                     child: Padding(
                       padding: EdgeInsets.all(32.r),
-                      child: const CircularProgressIndicator(),
+                      child: CircularProgressIndicator(color: theme.colorScheme.primary),
                     ),
                   );
                 }
@@ -85,8 +136,7 @@ class _ProductScreenState extends State<ProductScreen> {
                 }
 
                 final allProducts = snapshot.data ?? [];
-                
-                // Filtering logic for the search bar
+
                 final products = allProducts.where((product) {
                   return product.title.toLowerCase().contains(_searchQuery);
                 }).toList();
@@ -112,7 +162,6 @@ class _ProductScreenState extends State<ProductScreen> {
                   ),
                   itemBuilder: (context, index) {
                     final product = products[index];
-                    // Enhancement 2: Wrapped Card in GestureDetector
                     return GestureDetector(
                       onTap: () {
                         Navigator.push(
@@ -123,22 +172,31 @@ class _ProductScreenState extends State<ProductScreen> {
                         );
                       },
                       child: Card(
-                        elevation: 2,
+                        color: cardColor,
+                        elevation: isDark ? 0 : 2,
                         clipBehavior: Clip.antiAlias,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12.r),
+                          side: BorderSide(color: borderColor),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: Image.network(
-                                product.thumbnail,
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                                // Fixed VS Code Lint Warning here:
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Icon(Icons.image, size: 24.sp),
+                              // Product photos usually have white backgrounds,
+                              // so keep this patch white even in dark mode.
+                              child: Container(
+                                color: isDark ? Colors.white : Colors.grey[50],
+                                child: Image.network(
+                                  product.thumbnail,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  errorBuilder: (context, error, stackTrace) => Icon(
+                                    Icons.image,
+                                    size: 24.sp,
+                                    color: hintColor,
+                                  ),
+                                ),
                               ),
                             ),
                             Padding(

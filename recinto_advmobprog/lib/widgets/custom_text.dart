@@ -12,7 +12,7 @@ class CustomText extends StatelessWidget {
     this.fontStyle = FontStyle.normal,
     this.maxLines,
     this.overflow,
-    this.color, // FIX: Made this optional by removing 'required'
+    this.color, 
   });
 
   final String text;
