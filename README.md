@@ -6,14 +6,31 @@ A new Flutter project that focuses on advance topics. Covering the Mobile to Web
  
 ## Lab Activity Instance
 
-setState() is Flutter's built-in method for managing state within a single widget, it rebuilds that widget whenever its data changes. Provider is a third-party package used for state management across multiple widgets and screens, avoiding the need to manually pass data down through widget parameters. As an app grows, Provider makes state easier to share and update without rebuilding entire widget trees.
+Lab 1: Keeping Track of State (Without Losing Our Minds)
 
-The application is built around three main parts that work together like a restaurant team, each with its own job. The Model, found in product.dart, acts like a recipe card. It does no work itself, it simply describes what a "Product" looks like, including its name, price, and image.
+When building an app, data changes constantly. A user adds an item to a cart, or toggles dark mode. How do we keep the screen updated without breaking everything?
 
-The Service, found in product_service.dart, acts like the kitchen. It fetches raw data from an API, a way for programs to request information from each other, then shapes that data into Product objects following the Model's blueprint.
+    setState(): Think of this as the quick, local fix. It is built right into Flutter. When data inside a single, specific widget changes, setState() tells just that one piece of the screen to redraw itself.
 
-The Screen, found in product_screen.dart, plays the waiter. It asks the Service for data, waits while it loads using FutureBuilder, a widget that shows a spinner until the data arrives, and then displays it to the user.
+    Provider: As the app grows, passing data from screen to screen gets incredibly messy. Provider is a package that acts like a global broadcasting station. Instead of manually handing data down a massive chain of widgets, Provider lets any widget tune in and listen for updates. It keeps the code clean and stops us from having to redraw the entire screen when only one small thing changed.
 
-The process flows in one direction: the Screen requests data, the Service fetches and shapes it using the Model, and hands the finished list back for the Screen to display. Each part sticks to its own role, keeping the code organized.
+Lab 2: The Restaurant Architecture
 
-This structure follows a design pattern called Separation of Concerns, also known as the Service Layer or Repository Pattern. Instead of the Screen contacting the API directly, it always goes through the Service first, similar to how a waiter never enters the kitchen to cook. This keeps the app easy to maintain: if the API changes, only the Service needs updating, and if the design changes, only the Screen is touched.
+If you want clean, maintainable code, you cannot throw everything into one massive file. We split the app into three main jobs, much like how a restaurant operates:
+
+    The Model (product.dart): This is the recipe card. It does not actually cook anything; it just defines exactly what a "Product" is supposed to look like (e.g., it requires a name, a price, and an image).
+
+    The Service (product_service.dart): This is the kitchen staff. It does the heavy lifting of talking to the internet (the API), grabbing the raw ingredients (data), and preparing them exactly how the Model's recipe dictates.
+
+    The Screen (product_screen.dart): This is the waiter. It asks the Service for the food, asks the user to wait a second (usually showing a loading spinner via a FutureBuilder), and then serves the finished dish to the screen.
+
+The Big Takeaway: This setup implements a design pattern called Separation of Concerns. The waiter (Screen) never goes into the kitchen to cook, and the kitchen (Service) never talks to the customers. Because of this isolation, if our API changes, we only have to update the kitchen code. If we want to change the app's colors, we only touch the waiter code.
+Lab 3: Working Smarter, Not Harder with APIs
+
+How do we make navigating between screens feel fast and seamless when relying on the internet?
+
+    The Data Bridge: Our cart API is a bit lazy—it only gives us a tiny summary of a product. If a user taps a cart item to see its full details, we cannot just pass that tiny summary to the Detail Screen. Instead, the Cart Screen acts as a bridge. It takes the item's ID, quickly asks the Service to fetch the full details in the background, and then opens the Detail Screen.
+
+    Modular Code: Because we separated our concerns in Lab 2, our user interface code is not cluttered with complex network requests. We can easily call our Service from anywhere in the app to grab fresh data.
+
+    Efficiency via getById: Imagine downloading an entire library just to read one book. That is what happens if you do not use targeted API calls. By adding a specific ID to our API requests (like asking the server specifically for product #5), the server hands us exactly what we need and nothing more. This precision saves bandwidth, reduces lag, and makes the app feel incredibly snappy.

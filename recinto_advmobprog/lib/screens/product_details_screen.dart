@@ -7,7 +7,6 @@ import '../models/product.dart';
 import '../widgets/custom_text.dart';
 import '../providers/theme_provider.dart';
 
-// This page shows you the beautiful details of a single item you tapped on.
 class ProductDetailsScreen extends StatefulWidget {
   final Product product;
 
@@ -17,7 +16,7 @@ class ProductDetailsScreen extends StatefulWidget {
   State<ProductDetailsScreen> createState() => _ProductDetailsScreenState();
 }
 
-// This remembers things you change, like how many items you want or what color you picked.
+// Remembers your choices for size, color, and how many items you want.
 class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   String selectedSize = 'M';
   int selectedColorIndex = 0;
@@ -31,7 +30,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     Colors.brown.shade300
   ];
 
-  // This draws the screen with the pictures, words, and buttons.
   @override
   Widget build(BuildContext context) {
     bool isDark = Provider.of<ThemeProvider>(context).isDark;
@@ -225,7 +223,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   ),
                   SizedBox(height: 16.h),
                   CustomText(
-                    text: '\$14.99',
+                    text: '\$${widget.product.price}',
                     fontSize: 24.sp,
                     fontWeight: FontWeight.w600,
                     color: textColor,
@@ -420,7 +418,16 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               SizedBox(width: 16.w),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {},
+                  // Shows a success message confirming your items were added.
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Added $quantity x ${widget.product.title} to cart!'),
+                        backgroundColor: Colors.green,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: buttonBg,
                     foregroundColor: buttonText,

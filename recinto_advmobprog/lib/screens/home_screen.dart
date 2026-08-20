@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'product_screen.dart';
+import 'cart_screen.dart';
 import '../widgets/custom_text.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -48,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ? _buildHomeHeader(hintColor, textColor)
                           : CustomText(
                               text: (_selectedIndex == 1)
-                                  ? 'Chat'
+                                  ? 'Cart'
                                   : (_selectedIndex == 2)
                                       ? 'Profile'
                                       : 'Home',
@@ -71,20 +72,34 @@ class _HomeScreenState extends State<HomeScreen> {
         body: PageView(
           physics: const NeverScrollableScrollPhysics(),
           controller: _pageController,
-          children: const <Widget>[ProductScreen()],
+          children: const <Widget>[
+            ProductScreen(),
+            CartScreen(), 
+            SizedBox(), 
+          ],
           onPageChanged: (page) {
             setState(() {
               _selectedIndex = page;
             });
           },
         ),
+        
+        // Button goes poof on Cart screen (index 1). Shows up everywhere else.
+        floatingActionButton: _selectedIndex == 1 
+            ? null 
+            : FloatingActionButton(
+                onPressed: () {},
+                backgroundColor: Colors.amber,
+                child: const Icon(Icons.chat, color: Colors.black),
+              ),
+              
         bottomNavigationBar: BottomNavigationBar(
           showSelectedLabels: false,
           showUnselectedLabels: false,
           onTap: _onTappedBar,
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.shop_2), label: 'Shop'),
-            BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
+            BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Cart'),
             BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
           ],
           currentIndex: _selectedIndex,
@@ -108,8 +123,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         SizedBox(width: 10.w),
         Expanded(
-          // Only show the name line when we actually have one, otherwise
-          // "Welcome back" stands alone instead of pairing with a fake name.
           child: hasName
               ? Column(
                   mainAxisSize: MainAxisSize.min,
@@ -167,6 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Syncs bottom bar clicks to change the screen. 
   void _onTappedBar(int value) {
     setState(() {
       _selectedIndex = value;
