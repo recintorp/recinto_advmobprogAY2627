@@ -25,6 +25,7 @@ If you want clean, maintainable code, you cannot throw everything into one massi
     The Screen (product_screen.dart): This is the waiter. It asks the Service for the food, asks the user to wait a second (usually showing a loading spinner via a FutureBuilder), and then serves the finished dish to the screen.
 
 The Big Takeaway: This setup implements a design pattern called Separation of Concerns. The waiter (Screen) never goes into the kitchen to cook, and the kitchen (Service) never talks to the customers. Because of this isolation, if our API changes, we only have to update the kitchen code. If we want to change the app's colors, we only touch the waiter code.
+
 Lab 3: Working Smarter, Not Harder with APIs
 
 How do we make navigating between screens feel fast and seamless when relying on the internet?
