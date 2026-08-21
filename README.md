@@ -35,3 +35,13 @@ How do we make navigating between screens feel fast and seamless when relying on
     Modular Code: Because we separated our concerns in Lab 2, our user interface code is not cluttered with complex network requests. We can easily call our Service from anywhere in the app to grab fresh data.
 
     Efficiency via getById: Imagine downloading an entire library just to read one book. That is what happens if you do not use targeted API calls. By adding a specific ID to our API requests (like asking the server specifically for product #5), the server hands us exactly what we need and nothing more. This precision saves bandwidth, reduces lag, and makes the app feel incredibly snappy.
+
+Lab 4: Persistent Identity & Dynamic Rendering
+
+How do we remember who is using the app after it closes, and ensure they only see their own personalized data?
+
+    Profile Data Flow: The Service layer fetches raw data from the API endpoint and parses it into a structured User Model. The profile_screen then consumes this Model to display the user's details.
+
+    Updated Design Pattern: We introduced local persistence. By saving the User Model to device storage upon login, the app maintains an active session across restarts and reduces unnecessary API network calls.
+
+    Dynamic Cart Rendering: Instead of a hardcoded value, the cart_screen extracts the logged-in User ID from local storage and passes it to the API, guaranteeing it only fetches that specific user's cart items.

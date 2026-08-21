@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 
 import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/splash_screen.dart';
+import 'screens/signin_screen.dart';
 import 'providers/theme_provider.dart';
 
 void main() async {
@@ -37,9 +39,7 @@ class RecintoAdvMobProg extends StatelessWidget {
           final themeProvider = context.watch<ThemeProvider>();
           return MaterialApp(
             debugShowCheckedModeBanner: false,
-            // The bright, daytime colors for the app.
             theme: ThemeData.light(),
-            // The sleek, pitch-black nighttime colors to match your reference image.
             darkTheme: ThemeData.dark().copyWith(
               scaffoldBackgroundColor: const Color(0xFF000000), 
               appBarTheme: const AppBarTheme(
@@ -55,8 +55,11 @@ class RecintoAdvMobProg extends StatelessWidget {
             ),
             themeMode: themeProvider.isDark ? ThemeMode.dark : ThemeMode.light,
             title: 'E-Commerce App',
-            initialRoute: '/home',
+            // Now the app boots up on the splash screen to check authentication first
+            initialRoute: '/splash',
             routes: {
+              '/splash': (context) => const SplashScreen(),
+              '/signin': (context) => const SigninScreen(),
               '/home': (context) => const HomeScreen(),
               '/settings': (context) => const SettingsScreen(),
             },

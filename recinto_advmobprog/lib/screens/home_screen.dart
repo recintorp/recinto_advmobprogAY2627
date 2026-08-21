@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'product_screen.dart';
 import 'cart_screen.dart';
+import 'profile_screen.dart'; 
 import '../widgets/custom_text.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -19,48 +20,45 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final Map<String, dynamic>? userData = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final displayUsername = userData?['username'] ?? widget.username;
+    final firstName = userData?['firstName'] ?? 'Profile';
 
-    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final borderColor =
-        isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06);
-    final hintColor = isDark ? Colors.white54 : Colors.grey[600];
-    final textColor = isDark ? Colors.white : Colors.black87;
+    const appBarBgColor = Color(0xFF3949AB);
+    const appBarTextColor = Colors.white;
 
     return PopScope(
       canPop: false,
       child: Scaffold(
         appBar: PreferredSize(
-          preferredSize: Size.fromHeight(72.h),
+          preferredSize: Size.fromHeight(75.h), // Slightly taller to fit the stacked text beautifully
           child: Container(
-            decoration: BoxDecoration(
-              color: surfaceColor,
-              border: Border(bottom: BorderSide(color: borderColor)),
+            decoration: const BoxDecoration(
+              color: appBarBgColor,
             ),
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                // Added vertical padding to give the header breathing room
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                 child: Row(
+                  // THIS is what fixes the awkward floating! It forces everything to the vertical center.
+                  crossAxisAlignment: CrossAxisAlignment.center, 
                   children: [
                     Expanded(
                       child: _selectedIndex == 0
-                          ? _buildHomeHeader(hintColor, textColor)
+                          ? _buildHomeHeader(displayUsername)
                           : CustomText(
-                              text: (_selectedIndex == 1)
-                                  ? 'Cart'
-                                  : (_selectedIndex == 2)
-                                      ? 'Profile'
-                                      : 'Home',
-                              fontSize: 20.sp,
-                              fontWeight: FontWeight.w600,
-                              color: textColor,
+                              text: (_selectedIndex == 1) ? 'Cart' : firstName,
+                              fontSize: 22.sp,
+                              fontWeight: FontWeight.w700,
+                              color: appBarTextColor,
                             ),
                     ),
                     _buildHeaderIconButton(
-                      icon: Icons.settings_outlined,
-                      isDark: isDark,
+                      icon: Icons.settings,
+                      color: Colors.white,
+                      bgColor: Colors.transparent, 
                       onTap: () => Navigator.pushNamed(context, '/settings'),
                     ),
                   ],
@@ -75,7 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: const <Widget>[
             ProductScreen(),
             CartScreen(), 
-            SizedBox(), 
+            ProfileScreen(), 
           ],
           onPageChanged: (page) {
             setState(() {
@@ -83,8 +81,6 @@ class _HomeScreenState extends State<HomeScreen> {
             });
           },
         ),
-        
-        // Button goes poof on Cart screen (index 1). Shows up everywhere else.
         floatingActionButton: _selectedIndex == 1 
             ? null 
             : FloatingActionButton(
@@ -92,7 +88,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 backgroundColor: Colors.amber,
                 child: const Icon(Icons.chat, color: Colors.black),
               ),
-              
         bottomNavigationBar: BottomNavigationBar(
           showSelectedLabels: false,
           showUnselectedLabels: false,
@@ -108,48 +103,49 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHomeHeader(Color? hintColor, Color textColor) {
-    final hasName = widget.username.trim().isNotEmpty;
+  Widget _buildHomeHeader(String username) {
+    final hasName = username.trim().isNotEmpty;
 
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(10.r),
-          child: Image.asset(
-            'assets/images/nubdexchange_logo.png',
-            height: 34.h,
-            fit: BoxFit.contain,
-          ),
+        Image.asset(
+          'assets/images/nubdexchange_logo.png',
+          height: 38.h, 
+          fit: BoxFit.contain,
         ),
-        SizedBox(width: 10.w),
+        SizedBox(width: 12.w),
         Expanded(
-          child: hasName
-              ? Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CustomText(
-                      text: 'Welcome back',
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w400,
-                      color: hintColor,
-                    ),
-                    CustomText(
-                      text: widget.username,
-                      fontSize: 17.sp,
-                      fontWeight: FontWeight.w700,
-                      color: textColor,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                )
-              : CustomText(
-                  text: 'Welcome back',
-                  fontSize: 17.sp,
-                  fontWeight: FontWeight.w700,
-                  color: textColor,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Welcome Back',
+                style: TextStyle(
+                  fontFamily: 'Poppins', 
+                  fontSize: 12.sp, // Slightly smaller subtitle
+                  fontWeight: FontWeight.w400,
+                  color: Colors.white70, 
+                  height: 1.0, // Removes the invisible padding below the text
                 ),
+              ),
+              if (hasName)
+                Text(
+                  username,
+                  style: TextStyle(
+                    fontFamily: 'Poppins', 
+                    fontSize: 20.sp, // Larger username
+                    fontWeight: FontWeight.bold,
+                    color: Colors.amber, 
+                    height: 1.2, // Tucks it nicely under the subtitle
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+            ],
+          ),
         ),
       ],
     );
@@ -157,7 +153,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHeaderIconButton({
     required IconData icon,
-    required bool isDark,
+    required Color color,
+    required Color bgColor,
     required VoidCallback onTap,
   }) {
     return Material(
@@ -170,17 +167,16 @@ class _HomeScreenState extends State<HomeScreen> {
           height: 40.w,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.06)
-                : Colors.black.withValues(alpha: 0.04),
+            color: bgColor,
           ),
-          child: Icon(icon, size: 20.sp, color: isDark ? Colors.white70 : Colors.black87),
+          // Ensured the icon perfectly centers within its own invisible box
+          alignment: Alignment.center, 
+          child: Icon(icon, size: 24.sp, color: color),
         ),
       ),
     );
   }
 
-  // Syncs bottom bar clicks to change the screen. 
   void _onTappedBar(int value) {
     setState(() {
       _selectedIndex = value;

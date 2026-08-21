@@ -3,8 +3,9 @@ import 'package:provider/provider.dart';
 import '../models/cart.dart';
 import '../services/cart_service.dart';
 import '../services/product_service.dart';
+import '../services/user_service.dart';
 import '../providers/theme_provider.dart';
-import 'product_details_screen.dart';
+import 'detail_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -23,8 +24,15 @@ class _CartScreenState extends State<CartScreen> {
   @override
   void initState() {
     super.initState();
-    // Fetches cart #1 because it has 5 items instead of 3.
-    _cartFuture = _cartService.getUserCart(1); 
+    _cartFuture = _initCart(); 
+  }
+
+  // Grabs the saved User ID from storage, then asks the internet for that specific user's cart.
+  Future<Cart> _initCart() async {
+    final userData = await UserService().getUserData();
+    // Fallback to 1 if user ID is missing so the screen doesn't crash
+    final userId = (userData['id'] == 0 || userData['id'] == null) ? 1 : userData['id']; 
+    return await _cartService.getUserCart(userId);
   }
 
   @override
