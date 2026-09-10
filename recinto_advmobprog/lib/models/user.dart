@@ -1,3 +1,5 @@
+enum LoginType { dummyJson, firebase }
+
 class User {
   final int id;
   final String username;
@@ -8,6 +10,9 @@ class User {
   final String image;
   final String accessToken;
   final String refreshToken;
+  final int age;
+  final String contactNo;
+  final LoginType loginType;
 
   User({
     required this.id,
@@ -19,6 +24,9 @@ class User {
     required this.image,
     required this.accessToken,
     required this.refreshToken,
+    this.age = 0,
+    this.contactNo = '',
+    this.loginType = LoginType.dummyJson,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -32,6 +40,11 @@ class User {
       image: json['image'] ?? '',
       accessToken: json['accessToken'] ?? '',
       refreshToken: json['refreshToken'] ?? '',
+      age: json['age'] ?? 0,
+      contactNo: json['contactNo'] ?? '',
+      loginType: json['loginType'] == 'firebase'
+          ? LoginType.firebase
+          : LoginType.dummyJson,
     );
   }
 
@@ -46,6 +59,9 @@ class User {
       'image': image,
       'accessToken': accessToken,
       'refreshToken': refreshToken,
+      'age': age,
+      'contactNo': contactNo,
+      'loginType': loginType == LoginType.firebase ? 'firebase' : 'dummy',
     };
   }
 }

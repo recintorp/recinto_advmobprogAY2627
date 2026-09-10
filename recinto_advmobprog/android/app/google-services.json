@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "380804812018",
+    "project_id": "recinto-advmobprog",
+    "storage_bucket": "recinto-advmobprog.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:380804812018:android:e5b04af4d9c700c029546b",
+        "android_client_info": {
+          "package_name": "com.example.recinto_advmobprog"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0BCvRbLwnzYPn7FSU_mpHGeXuhPbeOeg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

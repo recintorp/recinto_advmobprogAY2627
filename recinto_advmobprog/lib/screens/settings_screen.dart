@@ -2,277 +2,216 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/theme_provider.dart';
+import '../services/user_service.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
-  static const _themeDuration = Duration(milliseconds: 300);
-  static const _themeCurve = Curves.easeInOut;
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final UserService _userService = UserService();
+
+  // Handles secure logout based on the active session type
+  Future<void> _handleLogout() async {
+    final user = await _userService.getUserData();
+    if (user['loginType'] == 'firebase') {
+      await _userService.signOut();
+    } else {
+      await _userService.logout();
+    }
+    
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
+  }
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDark;
 
-    final baseTheme = isDark ? ThemeData.dark() : ThemeData.light();
+    // Premium Apple-inspired color palette
+    final bgColor = isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7);
+    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+    // ignore: deprecated_member_use
+    final subtitleColor = isDark ? const Color(0xFFEBEBF5).withOpacity(0.6) : const Color(0xFF3C3C43).withOpacity(0.6);
+    final dividerColor = isDark ? const Color(0xFF38383A) : const Color(0xFFC6C6C8);
 
-    // Every color that changes between light and dark lives in this one object.
-    // AnimatedTheme blends it as a single package, so nothing can drift out of sync.
-    final themeData = baseTheme.copyWith(
-      scaffoldBackgroundColor:
-          isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7),
-      cardColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-      dividerColor: isDark ? Colors.grey[800] : Colors.grey[200],
-      appBarTheme: AppBarTheme(
-        backgroundColor:
-            isDark ? const Color(0xFF121212) : const Color(0xFFF7F7F7),
+    return Scaffold(
+      backgroundColor: bgColor,
+      appBar: AppBar(
+        backgroundColor: bgColor,
         elevation: 0,
         centerTitle: true,
+        iconTheme: IconThemeData(color: textColor),
+        title: Text(
+          'Settings',
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
+          ),
+        ),
       ),
-      colorScheme: baseTheme.colorScheme.copyWith(
-        primary: isDark ? Colors.white70 : Colors.blue,
-        // The shadow just fades its own opacity instead of popping on/off.
-        shadow: isDark
-            ? Colors.black.withValues(alpha: 0)
-            : Colors.black.withValues(alpha: 0.03),
-      ),
-    );
-
-    return AnimatedTheme(
-      duration: _themeDuration,
-      curve: _themeCurve,
-      data: themeData,
-      child: Builder(
-        builder: (context) {
-          final theme = Theme.of(context);
-          return Scaffold(
-            backgroundColor: theme.scaffoldBackgroundColor,
-            appBar: AppBar(
-              title: const Text('Settings'),
-              elevation: 0,
-              backgroundColor: theme.appBarTheme.backgroundColor,
-              centerTitle: true,
-            ),
-            body: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Preferences Group
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16.0),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(12.0),
+              ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionHeader('Account'),
-                  _buildSettingsCard(
-                    context: context,
-                    children: [
-                      _buildSettingsTile(
-                        title: 'Rafael Alexis Recinto',
-                        subtitle: 'Application Developer',
-                        leadingWidget: CircleAvatar(
-                          backgroundColor:
-                              theme.colorScheme.primary.withValues(alpha: 0.2),
-                          radius: 22,
-                          child: Text(
-                            'RP',
-                            style: TextStyle(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        trailing: const Icon(Icons.arrow_forward_ios,
-                            size: 16, color: Colors.grey),
-                        onTap: () {},
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  _buildSectionHeader('App Settings'),
-                  _buildSettingsCard(
-                    context: context,
-                    children: [
-                      _buildSettingsTile(
-                        title: 'Dark Mode',
-                        subtitle: 'Smoothly toggle themes',
-                        icon: Icons.dark_mode_outlined,
-                        iconColor: Colors.deepPurple,
-                        trailing: Switch.adaptive(
-                          value: isDark,
-                          onChanged: (_) => themeProvider.toggleTheme(),
-                          activeThumbColor: Colors.blue,
-                          activeTrackColor: Colors.blue.withValues(alpha: 0.5),
-                        ),
-                      ),
-                      _buildCardDivider(context),
-                      _buildSettingsTile(
-                        title: 'Biometrics',
-                        subtitle: 'Use FaceID/Fingerprint',
-                        icon: Icons.fingerprint,
-                        iconColor: Colors.teal,
-                        trailing: const Icon(Icons.arrow_forward_ios,
-                            size: 16, color: Colors.grey),
-                        onTap: () {},
-                      ),
-                      _buildCardDivider(context),
-                      _buildSettingsTile(
-                        title: 'Language',
-                        subtitle: 'English (US)',
-                        icon: Icons.language,
-                        iconColor: Colors.amber[700],
-                        trailing: const Icon(Icons.arrow_forward_ios,
-                            size: 16, color: Colors.grey),
-                        onTap: () {},
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  _buildSectionHeader('System'),
-                  _buildSettingsCard(
-                    context: context,
-                    children: [
-                      _buildSettingsTile(
-                        title: 'Help & Support',
-                        icon: Icons.help_outline,
-                        iconColor: Colors.green,
-                        trailing: const Icon(Icons.arrow_forward_ios,
-                            size: 16, color: Colors.grey),
-                        onTap: () {},
-                      ),
-                      _buildCardDivider(context),
-                      _buildSettingsTile(
-                        title: 'About',
-                        subtitle: 'Version 1.0.0 BETA',
-                        icon: Icons.info_outline,
-                        iconColor: Colors.orange,
-                        trailing: const Icon(Icons.arrow_forward_ios,
-                            size: 16, color: Colors.grey),
-                        onTap: () {},
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 48),
-
-                  Center(
-                    child: TextButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.logout, color: Colors.red),
-                      label: const Text('Logout',
-                          style: TextStyle(color: Colors.red, fontSize: 16)),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 12),
-                        backgroundColor: isDark
-                            ? Colors.red.withValues(alpha: 0.1)
-                            : Colors.red.withValues(alpha: 0.05),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                      ),
+                  _buildSettingItem(
+                    title: 'Dark Mode',
+                    icon: Icons.dark_mode_rounded,
+                    iconBgColor: const Color(0xFF5856D6),
+                    textColor: textColor,
+                    trailing: Switch.adaptive(
+                      value: isDark,
+                      onChanged: (_) => themeProvider.toggleTheme(),
+                      // ignore: deprecated_member_use
+                      activeColor: const Color(0xFF34C759),
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  Divider(height: 1, thickness: 0.5, color: dividerColor, indent: 56),
+                  _buildSettingItem(
+                    title: 'Language',
+                    icon: Icons.language_rounded,
+                    iconBgColor: const Color(0xFF007AFF),
+                    textColor: textColor,
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('English', style: TextStyle(color: subtitleColor, fontSize: 16)),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
+                      ],
+                    ),
+                    onTap: () {},
+                  ),
                 ],
               ),
             ),
-          );
-        },
-      ),
-    );
-  }
+            
+            const SizedBox(height: 32),
+            
+            // Support Group
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16.0),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              child: Column(
+                children: [
+                  _buildSettingItem(
+                    title: 'Help & Support',
+                    icon: Icons.help_rounded,
+                    iconBgColor: const Color(0xFF34C759),
+                    textColor: textColor,
+                    trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
+                    onTap: () {},
+                  ),
+                  Divider(height: 1, thickness: 0.5, color: dividerColor, indent: 56),
+                  _buildSettingItem(
+                    title: 'About',
+                    icon: Icons.info_rounded,
+                    iconBgColor: const Color(0xFF8E8E93),
+                    textColor: textColor,
+                    trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
+                    onTap: () {},
+                  ),
+                ],
+              ),
+            ),
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 8),
-      child: Text(
-        title.toUpperCase(),
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.2,
-          color: Colors.grey,
+            const SizedBox(height: 48),
+
+            // Destructive Log Out Action
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16.0),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12.0),
+                  onTap: _handleLogout,
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16.0),
+                    child: Center(
+                      child: Text(
+                        'Log Out',
+                        style: TextStyle(
+                          color: Color(0xFFFF3B30),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // A plain Container, not its own AnimatedContainer.
-  // It just reads whatever color AnimatedTheme is showing right now, so it
-  // always matches everything else on screen instead of animating separately.
-  Widget _buildSettingsCard({
-    required BuildContext context,
-    required List<Widget> children,
-  }) {
-    final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: theme.colorScheme.shadow,
-            blurRadius: 10,
-            spreadRadius: 1,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(children: children),
-    );
-  }
-
-  Widget _buildCardDivider(BuildContext context) {
-    return Divider(
-      height: 1,
-      thickness: 0.5,
-      indent: 56,
-      color: Theme.of(context).dividerColor,
-    );
-  }
-
-  Widget _buildSettingsTile({
+  // Reusable list item builder for settings options
+  Widget _buildSettingItem({
     required String title,
-    String? subtitle,
-    IconData? icon,
-    Color? iconColor,
+    required IconData icon,
+    required Color iconBgColor,
+    required Color textColor,
     required Widget trailing,
-    Widget? leadingWidget,
     VoidCallback? onTap,
   }) {
-    final leading = leadingWidget ??
-        (icon != null ? _buildPremiumIcon(icon, iconColor ?? Colors.blue) : null);
-
-    return ListTile(
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      leading: leading,
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-        ),
+    final item = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: iconBgColor,
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            child: Icon(icon, color: Colors.white, size: 18),
+          ),
+          const SizedBox(width: 14),
+          Text(
+            title,
+            style: TextStyle(fontSize: 16, color: textColor),
+          ),
+          const Spacer(),
+          trailing,
+        ],
       ),
-      subtitle: subtitle != null
-          ? Text(
-              subtitle,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.grey,
-              ),
-            )
-          : null,
-      trailing: trailing,
     );
-  }
 
-  Widget _buildPremiumIcon(IconData icon, Color color) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        shape: BoxShape.circle,
+    if (onTap == null) return item;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: item,
       ),
-      child: Icon(icon, color: color, size: 20),
     );
   }
 }

@@ -1,16 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-// models
 import '../models/product.dart';
-
-// services
 import '../services/product_service.dart';
-
-// widgets
-import '../widgets/custom_text.dart';
-
-// screens
 import 'detail_screen.dart';
 
 class ProductScreen extends StatefulWidget {
@@ -39,130 +31,107 @@ class _ProductScreenState extends State<ProductScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Reading colors from Theme.of(context) instead of hardcoding them means
-    // this screen fades with the rest of the app when dark mode toggles.
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final cardColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final borderColor =
-        isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06);
-    final hintColor = isDark ? Colors.white54 : Colors.grey[600];
-    final textColor = isDark ? Colors.white : Colors.black87;
+    // Harmonized background colors to blend seamlessly with HomeScreen
+    final bgColor = Colors.transparent; 
+    final searchBgColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7);
+    final imageBgColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF5F5F7);
+    final textColor = isDark ? Colors.white : const Color(0xFF1D1D1F);
+    final hintColor = isDark ? const Color(0xFF86868B) : const Color(0xFF86868B);
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
+    // Padding to ensure content clears the floating nav bar
+    final bottomNavOffset = MediaQuery.of(context).padding.bottom + 100.h;
+
+    return Scaffold(
+      backgroundColor: bgColor,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Cleaned up the top header to avoid clashing with the HomeScreen app bar.
+          // Centered on a sleek, prominent search field.
+          Padding(
+            padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 16.h),
+            child: Container(
+              height: 48.h,
               decoration: BoxDecoration(
-                color: surfaceColor,
-                borderRadius: BorderRadius.circular(28.r),
-                border: Border.all(color: borderColor),
-                boxShadow: isDark
-                    ? null
-                    : [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                color: searchBgColor,
+                borderRadius: BorderRadius.circular(24.r),
               ),
               child: TextField(
                 controller: _searchController,
-                style: TextStyle(color: textColor, fontSize: 14.sp),
-                cursorColor: theme.colorScheme.primary,
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value.toLowerCase();
-                  });
-                },
+                style: TextStyle(color: textColor, fontSize: 16.sp),
+                cursorColor: Colors.amber,
+                onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
                 decoration: InputDecoration(
-                  hintText: 'Search products...',
-                  hintStyle: TextStyle(color: hintColor),
-                  prefixIcon: Icon(Icons.search, color: hintColor, size: 22.sp),
-                  // Only show the little "x" when there's something to clear.
+                  hintText: 'Search products',
+                  hintStyle: TextStyle(color: hintColor, fontSize: 16.sp),
+                  prefixIcon: Padding(
+                    padding: EdgeInsets.only(left: 8.w),
+                    child: Icon(Icons.search_rounded, color: hintColor, size: 22.sp),
+                  ),
                   suffixIcon: _searchQuery.isEmpty
                       ? null
-                      : IconButton(
-                          icon: Icon(Icons.close, color: hintColor, size: 18.sp),
-                          onPressed: () {
+                      : GestureDetector(
+                          onTap: () {
                             _searchController.clear();
                             setState(() => _searchQuery = '');
                           },
+                          child: Icon(Icons.cancel_rounded, color: hintColor, size: 20.sp),
                         ),
-                  filled: true,
-                  fillColor: Colors.transparent,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 14.h),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(28.r),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(28.r),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(28.r),
-                    borderSide: BorderSide.none,
-                  ),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(vertical: 14.h),
                 ),
               ),
             ),
-            SizedBox(height: 16.h),
-            FutureBuilder<List<Product>>(
+          ),
+          
+          Expanded(
+            child: FutureBuilder<List<Product>>(
               future: _productsFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32.r),
-                      child: CircularProgressIndicator(color: theme.colorScheme.primary),
-                    ),
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.amber, strokeWidth: 2),
                   );
                 }
 
                 if (snapshot.hasError) {
                   return Center(
-                    child: CustomText(
-                      text: 'Error: ${snapshot.error}',
-                      fontSize: 14.sp,
+                    child: Text(
+                      'Failed to load products.',
+                      style: TextStyle(color: hintColor, fontSize: 15.sp),
                     ),
                   );
                 }
 
                 final allProducts = snapshot.data ?? [];
-
                 final products = allProducts.where((product) {
                   return product.title.toLowerCase().contains(_searchQuery);
                 }).toList();
 
                 if (products.isEmpty) {
                   return Center(
-                    child: CustomText(
-                      text: 'No products found.',
-                      fontSize: 14.sp,
+                    child: Text(
+                      'No products found.',
+                      style: TextStyle(color: hintColor, fontSize: 15.sp),
                     ),
                   );
                 }
 
                 return GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.only(left: 20.w, right: 20.w, bottom: bottomNavOffset),
                   itemCount: products.length,
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    crossAxisSpacing: 10.w,
-                    mainAxisSpacing: 10.h,
-                    childAspectRatio: 0.75,
+                    crossAxisSpacing: 16.w,
+                    mainAxisSpacing: 24.h,
+                    childAspectRatio: 0.72, // Slightly taller aspect ratio to balance image and text
                   ),
                   itemBuilder: (context, index) {
                     final product = products[index];
                     return GestureDetector(
+                      behavior: HitTestBehavior.opaque,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -171,65 +140,69 @@ class _ProductScreenState extends State<ProductScreen> {
                           ),
                         );
                       },
-                      child: Card(
-                        color: cardColor,
-                        elevation: isDark ? 0 : 2,
-                        clipBehavior: Clip.antiAlias,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                          side: BorderSide(color: borderColor),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              // Product photos usually have white backgrounds,
-                              // so keep this patch white even in dark mode.
-                              child: Container(
-                                color: isDark ? Colors.white : Colors.grey[50],
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Premium edge-to-edge image framing
+                          Expanded(
+                            child: Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: imageBgColor,
+                                borderRadius: BorderRadius.circular(16.r),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16.r),
                                 child: Image.network(
                                   product.thumbnail,
                                   fit: BoxFit.cover,
-                                  width: double.infinity,
                                   errorBuilder: (context, error, stackTrace) => Icon(
-                                    Icons.image,
-                                    size: 24.sp,
+                                    Icons.image_not_supported_outlined,
                                     color: hintColor,
                                   ),
                                 ),
                               ),
                             ),
-                            Padding(
-                              padding: EdgeInsets.all(8.r),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  CustomText(
-                                    text: product.title,
+                          ),
+                          SizedBox(height: 12.h),
+                          // Clean text layout underneath
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 4.w),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  product.title,
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: -0.2,
+                                    color: textColor,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                SizedBox(height: 4.h),
+                                Text(
+                                  '\$${product.price.toStringAsFixed(2)}',
+                                  style: TextStyle(
                                     fontSize: 14.sp,
                                     fontWeight: FontWeight.bold,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                    color: Colors.amber, 
                                   ),
-                                  SizedBox(height: 4.h),
-                                  CustomText(
-                                    text: '\$${product.price.toStringAsFixed(2)}',
-                                    fontSize: 13.sp,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     );
                   },
                 );
               },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

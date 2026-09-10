@@ -18,7 +18,7 @@ class _CartScreenState extends State<CartScreen> {
   late Future<Cart> _cartFuture;
   final CartService _cartService = CartService();
   
-  // Remembers your +/- quantity changes on this screen without breaking the original internet data.
+  // Tracks local quantity adjustments without hitting the API constantly
   Map<int, int> localQuantities = {};
 
   @override
@@ -27,41 +27,64 @@ class _CartScreenState extends State<CartScreen> {
     _cartFuture = _initCart(); 
   }
 
-  // Grabs the saved User ID from storage, then asks the internet for that specific user's cart.
+  // Fetches the user's cart safely, falling back to a default ID if missing
   Future<Cart> _initCart() async {
     final userData = await UserService().getUserData();
-    // Fallback to 1 if user ID is missing so the screen doesn't crash
     final userId = (userData['id'] == 0 || userData['id'] == null) ? 1 : userData['id']; 
     return await _cartService.getUserCart(userId);
   }
 
   @override
   Widget build(BuildContext context) {
-    // Checks if the app is in dark mode and sets the colors automatically.
     final isDark = Provider.of<ThemeProvider>(context).isDark;
+    
+    // Restored Original Color Palette
     final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF5F7FA);
-    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final surfaceColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
     final subTextColor = isDark ? Colors.grey.shade400 : Colors.grey.shade500;
     final borderColor = isDark ? const Color(0xFF333333) : Colors.grey.shade200;
 
+    // Bottom padding to perfectly clear the custom floating nav bar in HomeScreen
+    final bottomNavOffset = MediaQuery.of(context).padding.bottom + 100.0;
+
     return Scaffold(
       backgroundColor: bgColor,
-      // Removed the AppBar completely so we don't have double headers!
       body: FutureBuilder<Cart>(
         future: _cartFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(
+                color: Colors.amber,
+                strokeWidth: 2,
+              ),
+            );
           } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}', style: TextStyle(color: textColor)));
-          } else if (!snapshot.hasData) {
-            return Center(child: Text('Cart is empty', style: TextStyle(color: textColor)));
+            return Center(
+              child: Text(
+                'Something went wrong.',
+                style: TextStyle(color: subTextColor, fontSize: 16),
+              ),
+            );
+          } else if (!snapshot.hasData || snapshot.data!.products.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.shopping_bag_outlined, size: 48, color: borderColor),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Your cart is empty',
+                    style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            );
           }
 
           final cart = snapshot.data!;
           
-          // Calculates the total price based on the local quantity changes.
           double currentSubtotal = 0;
           for (var p in cart.products) {
             currentSubtotal += p.price * (localQuantities[p.id] ?? p.quantity);
@@ -70,153 +93,147 @@ class _CartScreenState extends State<CartScreen> {
           return Column(
             children: [
               Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.only(top: 16, bottom: 16),
+                child: ListView.separated(
+                  // Added extra top padding to distance it from the app bar
+                  padding: const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 8),
                   itemCount: cart.products.length,
+                  separatorBuilder: (context, index) => Divider(
+                    color: borderColor,
+                    height: 32,
+                    thickness: 1,
+                  ),
                   itemBuilder: (context, index) {
                     final product = cart.products[index];
                     final currentQuantity = localQuantities[product.id] ?? product.quantity;
 
                     return GestureDetector(
-                      // Goes to the details page only when you tap the main card area.
+                      behavior: HitTestBehavior.opaque,
                       onTap: () async {
                         try {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Loading product details...'),
-                              duration: Duration(milliseconds: 500),
-                            ),
-                          );
-
                           final realProduct = await ProductService().getProductById(product.id);
-
                           if (context.mounted) {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => ProductDetailsScreen(
-                                  product: realProduct,
-                                ),
+                                builder: (context) => ProductDetailsScreen(product: realProduct),
                               ),
                             );
                           }
                         } catch (e) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Failed to load product details. Please try again.')),
+                              const SnackBar(content: Text('Failed to load product details.')),
                             );
                           }
                         }
                       },
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                        padding: const EdgeInsets.all(16.0),
-                        decoration: BoxDecoration(
-                          color: cardColor,
-                          borderRadius: BorderRadius.circular(16.0),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.04),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Premium product image framing
+                          Container(
+                            width: 96,
+                            height: 96,
+                            decoration: BoxDecoration(
+                              color: surfaceColor,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: borderColor),
                             ),
-                          ],
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8.0),
-                              child: Image.network(product.thumbnail, width: 60, height: 60, fit: BoxFit.cover),
-                            ),
-                            const SizedBox(width: 16.0),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    product.title,
-                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textColor),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4.0),
-                                  Text(
-                                    '\$${product.price}',
-                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.amber),
-                                  ),
-                                  const SizedBox(height: 2.0),
-                                  Text(
-                                    '${product.discountPercentage}% off',
-                                    style: TextStyle(fontSize: 11, color: subTextColor),
-                                  ),
-                                ],
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Image.network(
+                                product.thumbnail,
+                                fit: BoxFit.cover,
                               ),
                             ),
-                            Column(
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                GestureDetector(
-                                  // Traps the tap here so it doesn't open the details screen, and adds 1 to the quantity.
-                                  onTap: () {
-                                    setState(() {
-                                      localQuantities[product.id] = currentQuantity + 1;
-                                    });
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4.0),
-                                    decoration: BoxDecoration(
-                                      color: Colors.amber,
-                                      borderRadius: BorderRadius.circular(6.0),
-                                    ),
-                                    child: const Icon(Icons.add, size: 14, color: Colors.white),
+                                const SizedBox(height: 4),
+                                Text(
+                                  product.title,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: -0.2,
+                                    color: textColor,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  '\$${product.price.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.amber, 
                                   ),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 6.0),
-                                  child: Text(
-                                    '$currentQuantity',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor),
+                                const SizedBox(height: 16),
+                                // Minimalist pill-shaped quantity selector
+                                Container(
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: borderColor, width: 1),
+                                    borderRadius: BorderRadius.circular(20),
                                   ),
-                                ),
-                                GestureDetector(
-                                  // Traps the tap here so it doesn't open the details screen, and subtracts 1 (if above 1).
-                                  onTap: () {
-                                    if (currentQuantity > 1) {
-                                      setState(() {
-                                        localQuantities[product.id] = currentQuantity - 1;
-                                      });
-                                    }
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4.0),
-                                    decoration: BoxDecoration(
-                                      color: isDark ? const Color(0xFF333333) : Colors.grey.shade300,
-                                      borderRadius: BorderRadius.circular(6.0),
-                                    ),
-                                    child: Icon(Icons.remove, size: 14, color: isDark ? Colors.white : Colors.black54),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () {
+                                          if (currentQuantity > 1) {
+                                            setState(() {
+                                              localQuantities[product.id] = currentQuantity - 1;
+                                            });
+                                          }
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                          child: Icon(Icons.remove, size: 16, color: currentQuantity > 1 ? textColor : subTextColor),
+                                        ),
+                                      ),
+                                      Text(
+                                        '$currentQuantity',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                          color: textColor,
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            localQuantities[product.id] = currentQuantity + 1;
+                                          });
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                          child: Icon(Icons.add, size: 16, color: textColor),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     );
                   },
                 ),
               ),
+              
+              // Refined checkout footer, padded to hover perfectly above the nav bar
               Container(
-                padding: const EdgeInsets.all(20.0),
+                padding: EdgeInsets.fromLTRB(24, 24, 24, bottomNavOffset),
                 decoration: BoxDecoration(
-                  color: cardColor,
-                  border: Border(top: BorderSide(color: borderColor)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, -5),
-                    ),
-                  ],
+                  color: surfaceColor,
+                  border: Border(top: BorderSide(color: borderColor, width: 1)),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -224,28 +241,37 @@ class _CartScreenState extends State<CartScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Subtotal:', style: TextStyle(color: subTextColor, fontSize: 14)),
-                        Text('\$${currentSubtotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.amber, fontSize: 16)),
+                        Text('Subtotal:', style: TextStyle(color: subTextColor, fontSize: 15)),
+                        Text(
+                          '\$${currentSubtotal.toStringAsFixed(2)}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.amber, fontSize: 16),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Shipping Fee:', style: TextStyle(color: subTextColor, fontSize: 14)),
-                        const Text('\$0.00', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber, fontSize: 16)),
+                        Text('Shipping Fee:', style: TextStyle(color: subTextColor, fontSize: 15)),
+                        const Text(
+                          '\$0.00',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber, fontSize: 16),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.amber,
+                        backgroundColor: Colors.amber, 
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
                         minimumSize: const Size.fromHeight(54),
                       ),
                       onPressed: () {},
-                      child: const Text('Confirm Order', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                      child: const Text(
+                        'Confirm Order',
+                        style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
                     )
                   ],
                 ),

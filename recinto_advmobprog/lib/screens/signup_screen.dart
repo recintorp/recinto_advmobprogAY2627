@@ -3,24 +3,28 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../services/user_service.dart';
 
-class SigninScreen extends StatefulWidget {
-  const SigninScreen({super.key});
+class SignupScreen extends StatefulWidget {
+  const SignupScreen({super.key});
 
   @override
-  State<SigninScreen> createState() => _SigninScreenState();
+  State<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _SigninScreenState extends State<SigninScreen>
+class _SignupScreenState extends State<SignupScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
+  final _fNameController = TextEditingController();
+  final _lNameController = TextEditingController();
+  final _ageController = TextEditingController();
+  final _contactNoController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
-  // Controls the visibility of the password
   bool _obscurePassword = true;
 
-  // A single orchestrated entrance: header settles in first, the form
-  // follows a beat behind it, rather than every element animating on its own.
+  // Same two-beat entrance as the sign-in screen: header settles first,
+  // the form follows a moment behind it.
   late final AnimationController _entrance;
   late final Animation<double> _headerFade;
   late final Animation<Offset> _headerSlide;
@@ -62,23 +66,32 @@ class _SigninScreenState extends State<SigninScreen>
 
   @override
   void dispose() {
+    _fNameController.dispose();
+    _lNameController.dispose();
+    _ageController.dispose();
+    _contactNoController.dispose();
+    _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _entrance.dispose();
     super.dispose();
   }
 
-  // Checks credentials with Firebase, saves the session, and goes to the Home screen.
-  void _login() async {
+  void _signup() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final userService = UserService();
     setState(() {
       _isLoading = true;
     });
 
     try {
-      await userService.signIn(
+      final userService = UserService();
+      await userService.createAccount(
+        fName: _fNameController.text.trim(),
+        lName: _lNameController.text.trim(),
+        age: int.parse(_ageController.text.trim()),
+        contactNo: _contactNoController.text.trim(),
+        username: _usernameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
@@ -86,50 +99,47 @@ class _SigninScreenState extends State<SigninScreen>
       final userData = await userService.getUserData();
 
       if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
-
-      Navigator.pushReplacementNamed(context, '/home', arguments: userData);
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/home',
+        (route) => false,
+        arguments: userData,
+      );
     } on firebase_auth.FirebaseAuthException catch (e) {
       if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_authErrorMessage(e))),
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed: ${e.toString()}')),
+        SnackBar(content: Text('Sign up failed: ${e.toString()}')),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   String _authErrorMessage(firebase_auth.FirebaseAuthException e) {
     switch (e.code) {
-      case 'user-not-found':
-      case 'invalid-credential':
-        return 'No account found for that email and password.';
-      case 'wrong-password':
-        return 'Incorrect password.';
+      case 'email-already-in-use':
+        return 'An account already exists for that email.';
       case 'invalid-email':
         return 'Please enter a valid email address.';
+      case 'weak-password':
+        return 'Password should be at least 6 characters.';
       default:
-        return 'Login failed: ${e.message}';
+        return 'Sign up failed: ${e.message}';
     }
   }
 
-  // Minimal underline field styling — lighter and quieter than a boxed
-  // border, in keeping with a more restrained, premium feel.
-  InputDecoration _fieldDecoration({
-    required String label,
-    Widget? suffixIcon,
-  }) {
+  // Same minimal underline styling as the sign-in screen, for one
+  // consistent visual language across the auth flow.
+  InputDecoration _decoration(String label, {Widget? suffixIcon}) {
     return InputDecoration(
       labelText: label,
       floatingLabelBehavior: FloatingLabelBehavior.always,
@@ -163,12 +173,15 @@ class _SigninScreenState extends State<SigninScreen>
 
   @override
   Widget build(BuildContext context) {
+    const fieldStyle = TextStyle(fontSize: 16, color: _ink);
+    const fieldSpacing = SizedBox(height: 24);
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 32.0),
+            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
             child: Form(
               key: _formKey,
               child: Column(
@@ -178,15 +191,10 @@ class _SigninScreenState extends State<SigninScreen>
                     opacity: _headerFade,
                     child: SlideTransition(
                       position: _headerSlide,
-                      child: Column(
+                      child: const Column(
                         children: [
-                          Image.asset(
-                            'assets/images/nubdexchange_logo.png',
-                            height: 40,
-                          ),
-                          const SizedBox(height: 28),
-                          const Text(
-                            'Welcome back',
+                          Text(
+                            'Create account',
                             style: TextStyle(
                               fontSize: 30,
                               fontWeight: FontWeight.w700,
@@ -195,12 +203,12 @@ class _SigninScreenState extends State<SigninScreen>
                               height: 1.1,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           Text(
-                            'Sign in to continue',
+                            'Just a few details to get started',
                             style: TextStyle(
                               fontSize: 15,
-                              color: Colors.grey.shade500,
+                              color: Color(0xFF9E9E9E),
                               fontWeight: FontWeight.w400,
                             ),
                           ),
@@ -208,32 +216,109 @@ class _SigninScreenState extends State<SigninScreen>
                       ),
                     ),
                   ),
-                  const SizedBox(height: 52),
+                  const SizedBox(height: 44),
                   FadeTransition(
                     opacity: _formFade,
                     child: SlideTransition(
                       position: _formSlide,
                       child: Column(
                         children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _fNameController,
+                                  style: fieldStyle,
+                                  decoration: _decoration('First name'),
+                                  validator: (value) => (value == null || value.isEmpty)
+                                      ? 'Required'
+                                      : null,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _lNameController,
+                                  style: fieldStyle,
+                                  decoration: _decoration('Last name'),
+                                  validator: (value) => (value == null || value.isEmpty)
+                                      ? 'Required'
+                                      : null,
+                                ),
+                              ),
+                            ],
+                          ),
+                          fieldSpacing,
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: TextFormField(
+                                  controller: _ageController,
+                                  keyboardType: TextInputType.number,
+                                  style: fieldStyle,
+                                  decoration: _decoration('Age'),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Required';
+                                    }
+                                    final age = int.tryParse(value);
+                                    if (age == null || age <= 0) return 'Invalid';
+                                    return null;
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                flex: 3,
+                                child: TextFormField(
+                                  controller: _contactNoController,
+                                  keyboardType: TextInputType.phone,
+                                  style: fieldStyle,
+                                  decoration: _decoration('Contact number'),
+                                  validator: (value) => (value == null || value.isEmpty)
+                                      ? 'Required'
+                                      : null,
+                                ),
+                              ),
+                            ],
+                          ),
+                          fieldSpacing,
+                          TextFormField(
+                            controller: _usernameController,
+                            style: fieldStyle,
+                            decoration: _decoration('Username'),
+                            validator: (value) => (value == null || value.isEmpty)
+                                ? 'Please enter a username'
+                                : null,
+                          ),
+                          fieldSpacing,
                           TextFormField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
-                            style: const TextStyle(fontSize: 16, color: _ink),
-                            decoration: _fieldDecoration(label: 'Email'),
+                            style: fieldStyle,
+                            decoration: _decoration('Email address'),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Please enter your email';
                               }
+                              final emailRegex =
+                                  RegExp(r'^[\w\.\-]+@[\w\-]+\.[a-zA-Z]{2,}$');
+                              if (!emailRegex.hasMatch(value)) {
+                                return 'Please enter a valid email';
+                              }
                               return null;
                             },
                           ),
-                          const SizedBox(height: 28),
+                          fieldSpacing,
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
-                            style: const TextStyle(fontSize: 16, color: _ink),
-                            decoration: _fieldDecoration(
-                              label: 'Password',
+                            style: fieldStyle,
+                            decoration: _decoration(
+                              'Password',
                               suffixIcon: IconButton(
                                 splashRadius: 20,
                                 icon: AnimatedSwitcher(
@@ -258,22 +343,27 @@ class _SigninScreenState extends State<SigninScreen>
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter your password';
+                                return 'Please enter a password';
+                              }
+                              if (value.length < 6) {
+                                return 'Password must be at least 6 characters';
                               }
                               return null;
                             },
                           ),
                           const SizedBox(height: 40),
-                          _SignInButton(
+                          _PrimaryButton(
+                            label: 'Sign up',
                             isLoading: _isLoading,
-                            onPressed: _isLoading ? null : _login,
+                            onPressed: _isLoading ? null : _signup,
                             accent: _accent,
                           ),
                           const SizedBox(height: 24),
                           TextButton(
                             onPressed: _isLoading
                                 ? null
-                                : () => Navigator.pushNamed(context, '/signup'),
+                                : () => Navigator.pushReplacementNamed(
+                                    context, '/signin'),
                             style: TextButton.styleFrom(
                               foregroundColor: _accent,
                               overlayColor: _accent.withValues(alpha: 0.06),
@@ -286,9 +376,9 @@ class _SigninScreenState extends State<SigninScreen>
                                   fontWeight: FontWeight.w400,
                                 ),
                                 children: const [
-                                  TextSpan(text: "Don't have an account? "),
+                                  TextSpan(text: 'Already have an account? '),
                                   TextSpan(
-                                    text: 'Sign up',
+                                    text: 'Log in',
                                     style: TextStyle(
                                       color: _accent,
                                       fontWeight: FontWeight.w600,
@@ -314,24 +404,25 @@ class _SigninScreenState extends State<SigninScreen>
 
 /// A premium call-to-action button with a subtle tactile press animation
 /// (scales and gives haptic feedback on touch) and a smooth crossfade
-/// into its loading state — motion that responds to the person's own
-/// action rather than animating on its own.
-class _SignInButton extends StatefulWidget {
-  const _SignInButton({
+/// into its loading state. Matches the button used on the sign-in screen.
+class _PrimaryButton extends StatefulWidget {
+  const _PrimaryButton({
+    required this.label,
     required this.isLoading,
     required this.onPressed,
     required this.accent,
   });
 
+  final String label;
   final bool isLoading;
   final VoidCallback? onPressed;
   final Color accent;
 
   @override
-  State<_SignInButton> createState() => _SignInButtonState();
+  State<_PrimaryButton> createState() => _PrimaryButtonState();
 }
 
-class _SignInButtonState extends State<_SignInButton> {
+class _PrimaryButtonState extends State<_PrimaryButton> {
   bool _pressed = false;
 
   void _setPressed(bool value) {
@@ -385,10 +476,10 @@ class _SignInButtonState extends State<_SignInButton> {
                       strokeWidth: 2,
                     ),
                   )
-                : const Text(
-                    'Log in',
-                    key: ValueKey('label'),
-                    style: TextStyle(
+                : Text(
+                    widget.label,
+                    key: const ValueKey('label'),
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,

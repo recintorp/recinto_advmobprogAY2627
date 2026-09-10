@@ -1,13 +1,16 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
+import 'firebase_options.dart';
 import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/signin_screen.dart';
+import 'screens/signup_screen.dart';
 import 'providers/theme_provider.dart';
 
 void main() async {
@@ -18,6 +21,9 @@ void main() async {
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]).then(
     (_) async {
       await dotenv.load(fileName: 'assets/.env');
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
       runApp(const RecintoAdvMobProg());
     },
   );
@@ -41,12 +47,12 @@ class RecintoAdvMobProg extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             theme: ThemeData.light(),
             darkTheme: ThemeData.dark().copyWith(
-              scaffoldBackgroundColor: const Color(0xFF000000), 
+              scaffoldBackgroundColor: const Color(0xFF000000),
               appBarTheme: const AppBarTheme(
                 backgroundColor: Color(0xFF000000),
                 elevation: 0,
               ),
-              cardColor: const Color(0xFF1C1C1C), 
+              cardColor: const Color(0xFF1C1C1C),
               bottomNavigationBarTheme: const BottomNavigationBarThemeData(
                 backgroundColor: Color(0xFF000000),
                 selectedItemColor: Colors.white,
@@ -60,6 +66,7 @@ class RecintoAdvMobProg extends StatelessWidget {
             routes: {
               '/splash': (context) => const SplashScreen(),
               '/signin': (context) => const SigninScreen(),
+              '/signup': (context) => const SignupScreen(),
               '/home': (context) => const HomeScreen(),
               '/settings': (context) => const SettingsScreen(),
             },
