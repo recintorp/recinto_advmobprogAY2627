@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'product_screen.dart';
 import 'cart_screen.dart';
 import 'profile_screen.dart';
+import 'chat_screen.dart';
 import '../widgets/custom_text.dart';
 import '../providers/theme_provider.dart';
 
@@ -202,12 +203,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // Floating action button for the shop tab
+  // (Lab Activity 6: now opens the Chat List screen)
   Widget _buildFab() {
     return Material(
       color: Colors.transparent,
       shape: const CircleBorder(),
       child: InkWell(
-        onTap: () {},
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ChatScreen()),
+          );
+        },
         customBorder: const CircleBorder(),
         child: Container(
           width: 52.w,

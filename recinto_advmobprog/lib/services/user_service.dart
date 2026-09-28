@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:cloud_firestore/cloud_firestore.dart' as cloud_firestore;
+import 'package:flutter/foundation.dart' show debugPrint;
 import '../constants.dart';
 import '../models/user.dart';
 
@@ -138,9 +140,42 @@ class UserService {
 
   final firebase_auth.FirebaseAuth firebaseAuth = firebase_auth.FirebaseAuth.instance;
 
+  // NEW (Lab Activity 6): Firestore instance used to save users for the chat list.
+  final cloud_firestore.FirebaseFirestore _db =
+      cloud_firestore.FirebaseFirestore.instance;
+
   firebase_auth.User? get currentUser => firebaseAuth.currentUser;
 
   Stream<firebase_auth.User?> get authStateChanges => firebaseAuth.authStateChanges();
+
+  /// NEW (Lab Activity 6): Saves (or updates) this account in the Firestore
+  /// "Users" collection. The document ID is the Firebase Auth UID, so each
+  /// account has exactly one document. If [onlyIfMissing] is true, an
+  /// existing document is left untouched.
+  Future<void> _saveUserToFirestore({
+    required String uid,
+    required String email,
+    required String firstName,
+    required String lastName,
+    required String username,
+    bool onlyIfMissing = false,
+  }) async {
+    try {
+      final doc = _db.collection('Users').doc(uid);
+      if (onlyIfMissing && (await doc.get()).exists) return;
+
+      await doc.set({
+        'uid': uid,
+        'email': email,
+        'firstName': firstName,
+        'lastName': lastName,
+        'username': username,
+      }, cloud_firestore.SetOptions(merge: true));
+    } catch (e) {
+      // Don't block login/sign-up if Firestore has a problem.
+      debugPrint('Failed to save user to Firestore: $e');
+    }
+  }
 
   Future<firebase_auth.UserCredential> signIn({
     required String email,
@@ -171,6 +206,20 @@ class UserService {
       final cachedContactNo = prefs.getString('profile_contactNo_$uid');
       await prefs.setInt('age', cachedAge ?? 0);
       await prefs.setString('contactNo', cachedContactNo ?? '');
+    }
+
+    // NEW: make sure accounts created before this lab also exist in Firestore.
+    if (uid.isNotEmpty) {
+      final username = prefs.getString('username') ?? email.split('@').first;
+      final firstName = prefs.getString('firstName') ?? '';
+      await _saveUserToFirestore(
+        uid: uid,
+        email: email,
+        firstName: firstName.isNotEmpty ? firstName : username,
+        lastName: prefs.getString('lastName') ?? '',
+        username: username,
+        onlyIfMissing: true,
+      );
     }
 
     return credential;
@@ -208,6 +257,17 @@ class UserService {
     if (uid.isNotEmpty) {
       await prefs.setInt('profile_age_$uid', age);
       await prefs.setString('profile_contactNo_$uid', contactNo);
+    }
+
+    // NEW: also save this account in Firestore so it shows up in the chat list.
+    if (uid.isNotEmpty) {
+      await _saveUserToFirestore(
+        uid: uid,
+        email: email,
+        firstName: fName,
+        lastName: lName,
+        username: username,
+      );
     }
 
     return credential;

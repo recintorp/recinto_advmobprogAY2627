@@ -10,6 +10,12 @@ import '../models/product.dart';
 import '../widgets/custom_text.dart';
 import '../providers/theme_provider.dart';
 
+// App-wide palette, identical to the one in home_screen.dart.
+// Indigo carries structure and trust, amber carries value and action.
+const _indigo = Color(0xFF3949AB);
+const _indigoDeep = Color(0xFF262E7A);
+const _amber = Colors.amber;
+
 class ProductDetailsScreen extends StatefulWidget {
   final Product product;
 
@@ -47,18 +53,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen>
     super.dispose();
   }
 
-  void _showAddedToBagNotice(Color bgColor, Color textColor) {
+  void _showAddedToBagNotice() {
     final overlay = Overlay.of(context);
     final entry = OverlayEntry(
       builder: (context) => Positioned(
         left: 24.w,
         right: 24.w,
         bottom: 100.h,
-        child: _FloatingNotice(
-          text: 'Added to your bag',
-          bgColor: bgColor,
-          textColor: textColor,
-        ),
+        child: const _FloatingNotice(text: 'Added to your bag'),
       ),
     );
     overlay.insert(entry);
@@ -70,18 +72,33 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen>
     final bool isDark = Provider.of<ThemeProvider>(context).isDark;
     final double topPadding = MediaQuery.of(context).padding.top;
 
-    final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFFAF9F6);
-    final Color heroColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF3F1EC);
-    final Color cardColor = isDark ? const Color(0xFF161616) : const Color(0xFFFFFFFF);
-    final Color textColor = isDark ? const Color(0xFFF5F5F0) : const Color(0xFF1C1C1C);
-    final Color subTextColor = isDark ? const Color(0xFFA8A8A0) : const Color(0xFF7A7669);
-    final Color borderColor = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEDEAE1);
-    final Color accentColor = const Color(0xFFB08D57);
-    final Color buttonBg = isDark ? Colors.white : const Color(0xFF1C1C1C);
-    final Color buttonText = isDark ? Colors.black : Colors.white;
-    // ignore: deprecated_member_use
-    final Color glassTint = isDark ? Colors.black.withOpacity(0.35) : Colors.white.withOpacity(0.55);
-    final Color glassIcon = textColor;
+    // Surfaces and text follow the same neutrals as the cart screen.
+    final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFF5F7FA);
+    final Color cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final Color textColor = isDark ? Colors.white : Colors.black87;
+    final Color subTextColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
+    final Color borderColor = isDark ? const Color(0xFF333333) : Colors.grey.shade200;
+
+    // Indigo is too dark to read on dark surfaces, so icons and links use a
+    // lighter shade of the same hue there.
+    final Color blueAccent = isDark ? Colors.indigo.shade200 : _indigo;
+    // Kept in one place: swap for a deeper amber if you want more contrast on white.
+    const Color priceColor = _amber;
+
+    // The hero is a soft indigo wash so the product sits on the brand color.
+    final Color heroTop = Color.alphaBlend(
+      _indigo.withValues(alpha: isDark ? 0.30 : 0.14),
+      bgColor,
+    );
+    final Color heroBottom = Color.alphaBlend(
+      _indigoDeep.withValues(alpha: isDark ? 0.18 : 0.04),
+      bgColor,
+    );
+
+    final Color glassTint = isDark
+        ? _indigoDeep.withValues(alpha: 0.55)
+        : Colors.white.withValues(alpha: 0.65);
+    final Color glassIcon = isDark ? Colors.white : _indigoDeep;
 
     final double heroHeight = MediaQuery.of(context).size.height * 0.38;
 
@@ -109,7 +126,13 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen>
                 Container(
                   width: double.infinity,
                   height: heroHeight,
-                  color: heroColor,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [heroTop, heroBottom],
+                    ),
+                  ),
                   child: Hero(
                     tag: 'product-${widget.product.title}',
                     child: CachedNetworkImage(
@@ -117,8 +140,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen>
                       fit: BoxFit.contain,
                       width: double.infinity,
                       height: double.infinity,
-                      placeholder: (context, url) => Center(
-                        child: CircularProgressIndicator(color: subTextColor, strokeWidth: 1.5),
+                      placeholder: (context, url) => const Center(
+                        child: CircularProgressIndicator(color: _amber, strokeWidth: 2),
                       ),
                       errorWidget: (context, url, error) => Icon(
                         Icons.image_outlined,
@@ -167,14 +190,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen>
                               height: 16.r,
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
-                                color: accentColor,
+                                color: _amber,
                                 shape: BoxShape.circle,
                                 border: Border.all(color: bgColor, width: 1.5),
                               ),
                               child: Text(
                                 '3',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: Colors.black,
                                   fontSize: 9.sp,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -232,15 +255,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen>
                         _RatingSummaryInline(
                           rating: 4.8,
                           reviewCount: 124,
-                          accentColor: accentColor,
                           textColor: subTextColor,
                         ),
                         SizedBox(height: 22.h),
                         CustomText(
                           text: '\$${widget.product.price}',
                           fontSize: 25.sp,
-                          fontWeight: FontWeight.w500,
-                          color: textColor,
+                          fontWeight: FontWeight.w700,
+                          color: priceColor,
                         ),
                         SizedBox(height: 6.h),
                         CustomText(
@@ -271,7 +293,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen>
                                 children: [
                                   _StepperButton(
                                     icon: Icons.remove_rounded,
-                                    color: textColor,
+                                    color: blueAccent,
                                     onTap: () {
                                       if (quantity > 1) {
                                         HapticFeedback.selectionClick();
@@ -301,7 +323,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen>
                                   ),
                                   _StepperButton(
                                     icon: Icons.add_rounded,
-                                    color: textColor,
+                                    color: blueAccent,
                                     onTap: () {
                                       HapticFeedback.selectionClick();
                                       setState(() => quantity++);
@@ -322,21 +344,21 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen>
                                 _TrustBadge(
                                   icon: Icons.local_shipping_outlined,
                                   label: 'Free Shipping',
-                                  accentColor: accentColor,
+                                  iconColor: blueAccent,
                                   textColor: subTextColor,
                                 ),
                                 VerticalDivider(color: borderColor, width: 1),
                                 _TrustBadge(
                                   icon: Icons.autorenew_rounded,
                                   label: 'Easy Returns',
-                                  accentColor: accentColor,
+                                  iconColor: blueAccent,
                                   textColor: subTextColor,
                                 ),
                                 VerticalDivider(color: borderColor, width: 1),
                                 _TrustBadge(
                                   icon: Icons.verified_outlined,
                                   label: 'Authentic',
-                                  accentColor: accentColor,
+                                  iconColor: blueAccent,
                                   textColor: subTextColor,
                                 ),
                               ],
@@ -350,6 +372,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen>
                             body: widget.product.description,
                             textColor: textColor,
                             subTextColor: subTextColor,
+                            chevronColor: blueAccent,
                           ),
                         ),
                         Container(height: 1, color: borderColor),
@@ -360,6 +383,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen>
                                 'Orders ship within 1-2 business days. Returns are accepted within 30 days of delivery, provided the item is unused and in its original packaging.',
                             textColor: textColor,
                             subTextColor: subTextColor,
+                            chevronColor: blueAccent,
                           ),
                         ),
                         Container(height: 1, color: borderColor),
@@ -368,7 +392,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen>
                           child: _ReviewsSection(
                             rating: 4.8,
                             reviewCount: 124,
-                            accentColor: accentColor,
+                            blueAccent: blueAccent,
                             textColor: textColor,
                             subTextColor: subTextColor,
                             borderColor: borderColor,
@@ -402,7 +426,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen>
                   width: 52.w,
                   height: 52.w,
                   decoration: BoxDecoration(
-                    border: Border.all(color: borderColor),
+                    color: isWishlisted ? _amber.withValues(alpha: 0.14) : Colors.transparent,
+                    border: Border.all(color: isWishlisted ? _amber : borderColor),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
@@ -412,7 +437,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen>
                       child: Icon(
                         isWishlisted ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                         key: ValueKey<bool>(isWishlisted),
-                        color: isWishlisted ? accentColor : textColor,
+                        color: isWishlisted ? _amber : textColor,
                         size: 22.sp,
                       ),
                     ),
@@ -424,20 +449,20 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen>
                 child: _PressableScale(
                   onTap: () {
                     HapticFeedback.mediumImpact();
-                    _showAddedToBagNotice(buttonBg, buttonText);
+                    _showAddedToBagNotice();
                   },
                   child: Container(
                     height: 54.h,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: buttonBg,
+                      color: _amber,
                       borderRadius: BorderRadius.circular(28.r),
                     ),
                     child: CustomText(
                       text: 'ADD TO BAG',
-                      color: buttonText,
+                      color: Colors.black,
                       fontSize: 13.sp,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                       letterSpacing: 1.4,
                     ),
                   ),
@@ -509,13 +534,11 @@ class _StepperButton extends StatelessWidget {
 class _RatingSummaryInline extends StatelessWidget {
   final double rating;
   final int reviewCount;
-  final Color accentColor;
   final Color textColor;
 
   const _RatingSummaryInline({
     required this.rating,
     required this.reviewCount,
-    required this.accentColor,
     required this.textColor,
   });
 
@@ -523,7 +546,7 @@ class _RatingSummaryInline extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _StarRow(rating: rating, size: 14.sp, color: accentColor),
+        _StarRow(rating: rating, size: 14.sp, color: _amber),
         SizedBox(width: 8.w),
         CustomText(
           text: '$rating ($reviewCount reviews)',
@@ -563,13 +586,13 @@ class _StarRow extends StatelessWidget {
 class _TrustBadge extends StatelessWidget {
   final IconData icon;
   final String label;
-  final Color accentColor;
+  final Color iconColor;
   final Color textColor;
 
   const _TrustBadge({
     required this.icon,
     required this.label,
-    required this.accentColor,
+    required this.iconColor,
     required this.textColor,
   });
 
@@ -580,7 +603,7 @@ class _TrustBadge extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: 18.h),
         child: Column(
           children: [
-            Icon(icon, color: accentColor, size: 20.sp),
+            Icon(icon, color: iconColor, size: 20.sp),
             SizedBox(height: 8.h),
             CustomText(
               text: label,
@@ -600,12 +623,14 @@ class _ExpandableSection extends StatefulWidget {
   final String body;
   final Color textColor;
   final Color subTextColor;
+  final Color chevronColor;
 
   const _ExpandableSection({
     required this.title,
     required this.body,
     required this.textColor,
     required this.subTextColor,
+    required this.chevronColor,
   });
 
   @override
@@ -636,7 +661,7 @@ class _ExpandableSectionState extends State<_ExpandableSection> {
                 AnimatedRotation(
                   turns: expanded ? 0.5 : 0,
                   duration: const Duration(milliseconds: 220),
-                  child: Icon(Icons.expand_more_rounded, size: 20.sp, color: widget.textColor),
+                  child: Icon(Icons.expand_more_rounded, size: 20.sp, color: widget.chevronColor),
                 ),
               ],
             ),
@@ -759,10 +784,8 @@ class _RevealOnScrollState extends State<_RevealOnScroll> with SingleTickerProvi
 
 class _FloatingNotice extends StatelessWidget {
   final String text;
-  final Color bgColor;
-  final Color textColor;
 
-  const _FloatingNotice({required this.text, required this.bgColor, required this.textColor});
+  const _FloatingNotice({required this.text});
 
   @override
   Widget build(BuildContext context) {
@@ -771,12 +794,11 @@ class _FloatingNotice extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
         decoration: BoxDecoration(
-          color: bgColor,
+          color: _indigoDeep,
           borderRadius: BorderRadius.circular(14.r),
           boxShadow: [
             BoxShadow(
-              // ignore: deprecated_member_use
-              color: Colors.black.withOpacity(0.18),
+              color: Colors.black.withValues(alpha: 0.18),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -786,11 +808,11 @@ class _FloatingNotice extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_rounded, size: 16.sp, color: textColor),
+            Icon(Icons.check_circle_rounded, size: 16.sp, color: _amber),
             SizedBox(width: 8.w),
             Text(
               text,
-              style: TextStyle(color: textColor, fontSize: 13.sp, fontWeight: FontWeight.w500),
+              style: TextStyle(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -849,7 +871,7 @@ const List<double> _ratingDistribution = [0.78, 0.15, 0.04, 0.02, 0.01];
 class _ReviewsSection extends StatelessWidget {
   final double rating;
   final int reviewCount;
-  final Color accentColor;
+  final Color blueAccent;
   final Color textColor;
   final Color subTextColor;
   final Color borderColor;
@@ -857,7 +879,7 @@ class _ReviewsSection extends StatelessWidget {
   const _ReviewsSection({
     required this.rating,
     required this.reviewCount,
-    required this.accentColor,
+    required this.blueAccent,
     required this.textColor,
     required this.subTextColor,
     required this.borderColor,
@@ -887,7 +909,7 @@ class _ReviewsSection extends StatelessWidget {
                   color: textColor,
                 ),
                 SizedBox(height: 4.h),
-                _StarRow(rating: rating, size: 13.sp, color: accentColor),
+                _StarRow(rating: rating, size: 13.sp, color: _amber),
                 SizedBox(height: 4.h),
                 CustomText(
                   text: '$reviewCount reviews',
@@ -918,7 +940,7 @@ class _ReviewsSection extends StatelessWidget {
                                 value: _ratingDistribution[i],
                                 minHeight: 5.h,
                                 backgroundColor: borderColor,
-                                color: accentColor,
+                                color: _amber,
                               ),
                             ),
                           ),
@@ -934,7 +956,7 @@ class _ReviewsSection extends StatelessWidget {
         for (final review in _mockReviews) ...[
           _ReviewCard(
             review: review,
-            accentColor: accentColor,
+            blueAccent: blueAccent,
             textColor: textColor,
             subTextColor: subTextColor,
           ),
@@ -944,7 +966,7 @@ class _ReviewsSection extends StatelessWidget {
           child: TextButton(
             onPressed: () {},
             style: TextButton.styleFrom(
-              foregroundColor: textColor,
+              foregroundColor: blueAccent,
               padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 18.w),
             ),
             child: CustomText(
@@ -952,7 +974,7 @@ class _ReviewsSection extends StatelessWidget {
               fontSize: 12.5.sp,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.3,
-              color: textColor,
+              color: blueAccent,
             ),
           ),
         ),
@@ -963,13 +985,13 @@ class _ReviewsSection extends StatelessWidget {
 
 class _ReviewCard extends StatelessWidget {
   final _Review review;
-  final Color accentColor;
+  final Color blueAccent;
   final Color textColor;
   final Color subTextColor;
 
   const _ReviewCard({
     required this.review,
-    required this.accentColor,
+    required this.blueAccent,
     required this.textColor,
     required this.subTextColor,
   });
@@ -988,14 +1010,13 @@ class _ReviewCard extends StatelessWidget {
               height: 34.w,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                // ignore: deprecated_member_use
-                color: accentColor.withOpacity(0.14),
+                color: blueAccent.withValues(alpha: 0.14),
                 shape: BoxShape.circle,
               ),
               child: Text(
                 initials,
                 style: TextStyle(
-                  color: accentColor,
+                  color: blueAccent,
                   fontWeight: FontWeight.w600,
                   fontSize: 13.sp,
                 ),
@@ -1016,14 +1037,14 @@ class _ReviewCard extends StatelessWidget {
                       ),
                       if (review.verified) ...[
                         SizedBox(width: 6.w),
-                        Icon(Icons.verified_rounded, size: 13.sp, color: accentColor),
+                        Icon(Icons.verified_rounded, size: 13.sp, color: blueAccent),
                       ],
                     ],
                   ),
                   SizedBox(height: 2.h),
                   Row(
                     children: [
-                      _StarRow(rating: review.rating, size: 11.sp, color: accentColor),
+                      _StarRow(rating: review.rating, size: 11.sp, color: _amber),
                       SizedBox(width: 8.w),
                       CustomText(text: review.date, fontSize: 10.5.sp, color: subTextColor),
                     ],
