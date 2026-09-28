@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../models/chat_wallpaper.dart';
 import '../models/message_model.dart';
 import '../services/chat_service.dart';
+import '../services/presence_service.dart';
 import '../widgets/custom_text.dart';
 
 // The three states a message you sent can be in.
@@ -53,6 +56,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   // re-subscribe to Firestore every time it rebuilds.
   late final Stream<QuerySnapshot<Map<String, dynamic>>> _messagesStream;
   late final Stream<Map<String, dynamic>> _settingsStream;
+  late final Stream<Map<String, dynamic>> _otherUserStream; // their Online / Last seen
 
   // Used so only NEW messages play the fade/slide animation,
   // not the whole history every time the screen opens or scrolls.
@@ -72,6 +76,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     _messagesStream = _chatService.getMessage(_currentUserId, _otherUserId);
     _settingsStream = _chatService.getChatSettingsStream(_otherUserId);
+    _otherUserStream = _chatService.getUserStream(_otherUserId);
   }
 
   @override
@@ -232,14 +237,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (_otherEmail.isNotEmpty)
-                        CustomText(
-                          text: _otherEmail,
-                          fontSize: 11.sp,
-                          color: Colors.white70,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      // NEW: "Online" or "Last seen ..." (shows the email if unknown)
+                      _PresenceLabel(
+                        userStream: _otherUserStream,
+                        fallback: _otherEmail,
+                      ),
                     ],
                   ),
                 ),
@@ -759,6 +761,87 @@ class _AnimatedMessageState extends State<_AnimatedMessage>
     return FadeTransition(
       opacity: _fade,
       child: SlideTransition(position: _slide, child: widget.child),
+    );
+  }
+}
+
+// Shows "Online" or "Last seen ..." under the name in the header.
+// The timer refreshes the text every 30 seconds so it never goes stale.
+class _PresenceLabel extends StatefulWidget {
+  final Stream<Map<String, dynamic>> userStream;
+  final String fallback; // shown when there is no status yet (their email)
+
+  const _PresenceLabel({required this.userStream, required this.fallback});
+
+  @override
+  State<_PresenceLabel> createState() => _PresenceLabelState();
+}
+
+class _PresenceLabelState extends State<_PresenceLabel> {
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<Map<String, dynamic>>(
+      stream: widget.userStream,
+      builder: (context, snapshot) {
+        final user = snapshot.data ?? const <String, dynamic>{};
+        final online = PresenceService.isOnline(user);
+        final text = PresenceService.statusText(user);
+
+        // No status recorded yet: show the fallback (email) instead.
+        if (text.isEmpty) {
+          if (widget.fallback.isEmpty) return const SizedBox.shrink();
+          return CustomText(
+            text: widget.fallback,
+            fontSize: 11.sp,
+            color: Colors.white70,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          );
+        }
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Small green dot when online
+            if (online) ...[
+              Container(
+                width: 8.w,
+                height: 8.w,
+                decoration: const BoxDecoration(
+                  color: Colors.greenAccent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              SizedBox(width: 5.w),
+            ],
+            Flexible(
+              child: CustomText(
+                text: text,
+                fontSize: 11.sp,
+                color: online ? Colors.greenAccent : Colors.white70,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

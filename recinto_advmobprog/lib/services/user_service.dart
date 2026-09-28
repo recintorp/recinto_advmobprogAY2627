@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart' as cloud_firestore;
 import 'package:flutter/foundation.dart' show debugPrint;
 import '../constants.dart';
 import '../models/user.dart';
+import 'presence_service.dart';
 
 class UserService {
   Map<String, dynamic> data = {};
@@ -274,6 +275,8 @@ class UserService {
   }
 
   Future<void> signOut() async {
+    // NEW: mark me offline (and save "last seen") BEFORE leaving my account.
+    await PresenceService().stop();
     await firebaseAuth.signOut();
     await logout();
   }

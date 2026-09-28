@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../services/chat_service.dart';
+import '../services/presence_service.dart';
 import '../widgets/custom_text.dart';
 import 'chat_detailscreen.dart';
 
@@ -26,8 +29,20 @@ class _ChatScreenState extends State<ChatScreen> {
   late final Stream<Map<String, String>> _nicknamesStream =
       _chatService.getNicknamesStream();
 
+  // NEW: redraws the list every 30 seconds so green dots don't go stale
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
   @override
   void dispose() {
+    _ticker?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -182,6 +197,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final name = hasNickname ? nickname : realName;
     final email = (user['email'] ?? 'No email').toString();
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final online = PresenceService.isOnline(user); // NEW: is this person online?
 
     return Card(
       margin: EdgeInsets.only(bottom: 10.h),
@@ -197,15 +213,38 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           );
         },
-        leading: CircleAvatar(
-          radius: 24.r,
-          backgroundColor: _indigo,
-          child: CustomText(
-            text: initial,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+        leading: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            CircleAvatar(
+              radius: 24.r,
+              backgroundColor: _indigo,
+              child: CustomText(
+                text: initial,
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            // NEW: green dot on the avatar = online
+            if (online)
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  width: 13.w,
+                  height: 13.w,
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.surfaceContainerLow,
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
         title: CustomText(
           text: name,

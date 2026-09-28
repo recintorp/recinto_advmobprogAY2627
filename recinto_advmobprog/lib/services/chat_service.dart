@@ -27,6 +27,15 @@ class ChatService {
     });
   }
 
+  // Live document of ONE user (used for their Online / Last seen status).
+  Stream<Map<String, dynamic>> getUserStream(String userId) {
+    return _firestore
+        .collection('Users')
+        .doc(userId)
+        .snapshots()
+        .map((snapshot) => snapshot.data() ?? <String, dynamic>{});
+  }
+
   // Saves one message inside chat_rooms/<chatRoomId>/messages
   Future<void> sendMessage(String receiverId, String message) async {
     final currentUser = _auth.currentUser;

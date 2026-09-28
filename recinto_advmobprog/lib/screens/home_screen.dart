@@ -9,6 +9,7 @@ import 'profile_screen.dart';
 import 'chat_screen.dart';
 import '../widgets/custom_text.dart';
 import '../providers/theme_provider.dart';
+import '../services/presence_service.dart';
 
 const _indigo = Color(0xFF3949AB);
 const _indigoDeep = Color(0xFF262E7A);
@@ -23,7 +24,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
 
@@ -32,6 +33,40 @@ class _HomeScreenState extends State<HomeScreen> {
     Icons.shopping_bag_rounded,
     Icons.person_rounded,
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // NEW: watch the app going to the background / coming back
+    WidgetsBinding.instance.addObserver(this);
+    // NEW: mark me online and start the 1-minute "I'm still here" ping
+    PresenceService().start();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    PresenceService().stop(); // mark me offline
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  // NEW: online when the app is on screen, offline when it is in the background
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        PresenceService().start();
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
+        PresenceService().stop();
+        break;
+      case AppLifecycleState.inactive:
+        break; // short interruptions (like a popup): ignore
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
