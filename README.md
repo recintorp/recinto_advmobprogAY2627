@@ -55,3 +55,13 @@ How do we handle user logins and registrations safely without cluttering the vis
     Ready-to-Use Database: Firebase provides a secure backend, which means we do not have to build a custom server from scratch to keep passwords safe.
 
     Centralized UserService: To keep the code organized, all background work is put into a single UserService. Visual screens never talk to the internet directly; they simply ask the UserService to log someone in or register a new account, separating what the user sees from how the application actually works behind the scenes.
+
+Lab 6: Real-Time Chat with Cloud Firestore
+
+How do we let two people message each other and see new messages appear instantly, without refreshing the screen?
+
+    Chat List: The floating chat button opens a list built from the Users collection in Cloud Firestore. Every registered user is shown except the logged-in one, and a search bar filters the list by name or email as I type. Each account is saved to Firestore when it signs up or logs in, so it can appear in this list.
+
+    Chat Detail: Messages are bubbles, indigo on the right for me and grey on the left for the other person. Each of my messages shows Sending..., one checkmark when it is delivered, and two amber checkmarks when it is seen, and new messages fade and slide in.
+
+    Same Restaurant, New Menu: The Restaurant Architecture from Lab 2 still applies. message_model.dart is the recipe card, chat_service.dart is the kitchen that talks to Firestore, and chat_screen.dart and chat_detailscreen.dart are the waiters. As a bonus, I also added a private nickname and wallpaper for each chat.
